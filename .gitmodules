@@ -1,0 +1,3 @@
+[submodule "python-api"]
+	path = python-api
+	url = https://github.com/shotgunsoftware/python-api.git

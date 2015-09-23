@@ -1,0 +1,7 @@
+<Shotgun>
+  <host>https://yoursitename.shotgunstudio.com</host>
+  <api_script>your script name</api_script>
+  <api_key>your scripts key number</api_key>
+  <user>a user name</user>
+  <password>that users password</password>
+</Shotgun>
