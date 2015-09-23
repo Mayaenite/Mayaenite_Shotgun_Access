@@ -727,7 +727,9 @@ class Shotgun_Connection(object):
 		self._password    = password
 		self._config_file = config_file
 		self._use_env     = use_env
+		
 		self.set_connection()
+		self.entity_class_creator()
 	#----------------------------------------------------------------------
 	def set_connection(self):
 		""""""
@@ -1103,7 +1105,6 @@ def entity_class_creator(connection=None, update=True, global_space=None):
 
 if __name__ == "__main__":
 	connection = Shotgun_Connection(use_env=True)
-	connection.entity_class_creator()
 	prj =  connection.Entities.Project(81)
 	shot = connection.Entities.Shot.find(filters=[['project','is',{'type':'Project','id':81}]])
 	# entity_class_creator(connection=connection, update=True, global_space=None)
