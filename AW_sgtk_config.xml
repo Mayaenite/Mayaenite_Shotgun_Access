@@ -1,0 +1,10 @@
+<sgtk_config>
+  <win_projects_folder>\\BLUE\Arc\User\dloveridge\Shotgun_Mayaenite\Projects</win_projects_folder>
+  <mac_projects_folder>/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Projects</mac_projects_folder>
+  <linux_projects_folder>/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Projects</linux_projects_folder>
+  <win_schema_install>\\BLUE\Arc\User\dloveridge\Shotgun_Mayaenite\Tank</win_schema_install>
+  <mac_schema_install>/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank</mac_schema_install>
+  <linux_schema_install>/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank</linux_schema_install>
+  <schema_config_uri>https://github.com/Mayaenite/AW_Shotgun_Schema.git</schema_config_uri>
+</sgtk_config>
+

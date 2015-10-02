@@ -6,10 +6,12 @@ http://shotgunsoftware.github.com/shotgunEvents/api.html
 import logging
 import os
 import sys
+from xml.etree import ElementTree as etree
 #os.sys.path.append(os.path.dirname(__file__))
 # os.sys.path.append("S:\\SGTK_Core\\install\\core\\python")
 # os.sys.path.append("C:\Users\dloveridge\Documents\AW_Git_Repo\Shotgun")
 import Schema_Entity_Model
+import sgtk
 sg_access = Schema_Entity_Model.Shotgun_Connection(use_env=True)
 
 def check_and_change_project_name(sg, logger, event):
@@ -26,19 +28,47 @@ def check_and_change_project_name(sg, logger, event):
 		# update Project With New Name
 		sg.update("Project", project_id, dict(name=project_name) )
 
-def Shotgun_Toolkit_Builder(sgtk, project_id, projects_folder, config_settings, win_config_folder, mac_config_folder=None):
-	# Check To Make Sure That The Base Projects Folder Exists
-	# For Safty Reasons This Folder Is Not Automaticly Created
-	if not os.path.exists(projects_folder):
-		raise OSError("The Input Projects Folder Path %r Does Not Exist Please Create it And Run Again" % projects_folder)
+def Shotgun_Toolkit_Builder(project_id, config_file):
+	if not os.path.exists(config_file):
+		raise OSError("Could Not Find config file to parse %r" % config_file)
+	else:
+		tree = etree.parse(config_file)
+		win_projects_folder   = tree.findtext("win_projects_folder")
+		mac_projects_folder   = tree.findtext("mac_projects_folder")
+		linux_projects_folder = tree.findtext("linux_projects_folder")
+		
+		win_schema_install    = tree.findtext("win_schema_install")
+		mac_schema_install    = tree.findtext("mac_schema_install")
+		linux_schema_install  = tree.findtext("linux_schema_install")
+		schema_config_uri     = tree.findtext("schema_config_uri")
+		
+		if win_projects_folder is None:
+			raise ValueError("The Windows Project Folder Must Have A Valid Folder Path And Nothing Was Given")
+		
+		if win_schema_install is None:
+			raise ValueError("The Windows Schema Install Folder Must Have A Valid Folder Path And Nothing Was Given")	
+		
+		if schema_config_uri is None:
+			schema_config_uri = 'tk-config-default'
 	
-	# Check To Make Sure That The Base Toolkit Config Folder Exists
-	# For Safty Reasons This Folder Is Not Automaticly Created
-	if not os.path.exists(config_folder):
-		raise OSError("The Input Config Folder Path %r Does Not Exist Please Create it And Run Again" % config_folder)
+	if os.name == 'nt':
+		# Check To Make Sure That The Base Projects Folder Exists
+		# For Safty Reasons This Folder Is Not Automaticly Created
+		if not os.path.exists(win_projects_folder):
+			raise OSError("The Input Projects Folder Path %r Does Not Exist Please Create it And Run Again" % win_projects_folder)
+		# Check To Make Sure That The Base Toolkit Config Folder Exists
+		# For Safty Reasons This Folder Is Not Automaticly Created
+		if not os.path.exists(win_schema_install):
+			raise OSError("The Input Config Folder Path %r Does Not Exist Please Create it And Run Again" % win_schema_install)
 	
-	project      = sg.find_one("Project", filters=[["id","is",project_id]],fields=["name"])
-	project_name = project.get("name")
+	else:
+		raise NotImplementedError("Only Windows Is Supported At This Time")
+
+	
+	project = sg_access.Entities.Project(project_id)
+	
+	# The Project name.
+	project_name = project.name.value
 	
 	# Name of the folder which you want
 	# to be the root point of the created project.
@@ -47,29 +77,26 @@ def Shotgun_Toolkit_Builder(sgtk, project_id, projects_folder, config_settings, 
 	# the top level folder of the project.
 	project_folder_name = project_name.replace(" ", "_")
 	
-	# Shotgun id for the project you want to set up.
-	project_id          = project.get("id")
-	
 	# Build The Base Project Folder Path
-	# "\\\\BLUE\\Arc\\User\\dloveridge\\Shotgun_Mayaenite\\Projects\\" + project_folder_name
-	project_path = os.path.join(projects_folder , project_folder_name)
-	# Check IF The Base Project Path Exists
-	# And If Not Create It This Step Is Done Because 
-	# The ShotGun Tool Kit Will Not Create It For You
-	# And Will Error out Because It Does Not Exist
-	if not os.path.exists(project_path):
-		os.makedirs(project_path)
+	if os.name == 'nt':
+		win_project_path   = os.path.join(win_projects_folder , project_folder_name)
+		mac_project_path   = mac_projects_folder if mac_projects_folder is None else os.path.join(mac_projects_folder , project_folder_name).replace("\\", "/")
+		linux_project_path = linux_projects_folder if linux_projects_folder is None else os.path.join(linux_projects_folder , project_folder_name).replace("\\", "/")
+		
+		win_storage_path   = os.path.join(win_schema_install, project_folder_name)
+		mac_storage_path   = mac_schema_install if mac_schema_install is None else os.path.join(mac_schema_install, project_folder_name).replace("\\", "/")
+		linux_storage_path = linux_schema_install if linux_schema_install is None else os.path.join(linux_schema_install, project_folder_name).replace("\\", "/")
+		
+		# Check IF The Base Project and Storage Path Exists
+		# And If Not Create It This Step Is Done Because 
+		# The ShotGun Tool Kit Will Not Create It For You
+		# And Will Error out Because It Does Not Exist
+		for folder_path in [win_project_path, win_storage_path]:
+			if not os.path.exists(folder_path):
+				os.makedirs(folder_path)
+	else:
+		raise NotImplementedError("Only Windows Is Supported At This Time")
 	
-	# Build The Base Project Folder Path
-	# storage_path = "\\\\BLUE\\Arc\\User\\dloveridge\\Shotgun_Mayaenite\\Tank\\" + project_folder_name
-	storage_path = os.path.join(config_folder, project_folder_name)
-	
-	# Check IF The Base Storage Path Exists
-	# And If Not Create It This Step Is Done Because 
-	# The ShotGun Tool Kit Will Not Create It For You
-	# And Will Error out Because It Does Not Exist	
-	if not os.path.exists(storage_path):
-		os.makedirs(storage_path)
 	psetup = sgtk.get_command("setup_project")
 	
 	# The configuration to use when setting up this project.
@@ -78,19 +105,14 @@ def Shotgun_Toolkit_Builder(sgtk, project_id, projects_folder, config_settings, 
 	# (e.g. a git repo path which ends with .git)
 	# or 'tk-config-default' to fetch the default config from the toolkit app store.
 	# config_uri                = "https://github.com/Mayaenite/Master_Config.git"
-	config_uri                = config_settings
+	config_uri                = schema_config_uri
 	
 	# The path on disk where the configuration should be installed on Windows.
-	# config_path_win           = "\\\\BLUE\\Arc\\User\\dloveridge\\Shotgun_Mayaenite\\Tank\\" + project_folder_name
-	config_path_win           = "\\\\BLUE\\Arc\\User\\dloveridge\\Shotgun_Mayaenite\\Tank\\" + project_folder_name
-	
+	config_path_win           = win_storage_path
 	# The path on disk where the configuration should be installed on Linux.
-	# config_path_linux         = "/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank/" + project_folder_name
-	config_path_linux         = "/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank/" + project_folder_name
-	
+	config_path_linux         = linux_storage_path
 	# The path on disk where the configuration should be installed on Mac.
-	# config_path_mac           = "/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank/" + project_folder_name
-	config_path_mac           = "/Volumes/Arc/User/dloveridge/Shotgun_Mayaenite/Tank/" + project_folder_name
+	config_path_mac           = mac_storage_path
 	
 	# Enabling this flag allows you to run the
 	# set up project on projects which have 
@@ -116,23 +138,5 @@ def Shotgun_Toolkit_Builder(sgtk, project_id, projects_folder, config_settings, 
 	
 	psetup.execute(parameters)
 	
-	# prj = sgtk.sgtk_from_entity("Project",project_id)
-	
-	# prj.create_filesystem_structure("Project",project_id)
-	
-	## New Code For Shot Creation
-	
-	# shot_data = create_Shot_One_Previs(sg, project)
-	
-	# if not shot_data == False:
-		# shot_id   = shot_data.get("id")
-		
-		# sgtk_shot = sgtk.sgtk_from_entity("Shot", shot_id)
-		
-		# sgtk_shot.create_filesystem_structure("Shot", shot_id)
-		
-		# create_Task_Previs(sg, project, shot_data)
-		
 if __name__ == "__main__":
-	connection = AW_Shotgun_Access.connect_to_script("Toolkit", "21a993fd1dafe1caa0ed38eeba4d7684eaa0f47299f614b17fc2cab429b8212b","https://mayaenite.shotgunstudio.com")
-	Shotgun_Toolkit_Builder(connection, 82)
+	Shotgun_Toolkit_Builder(85, "C:\Users\dloveridge\Documents\GitHub\Mayaenite_Shotgun_Access\AW_sgtk_config.xml")
